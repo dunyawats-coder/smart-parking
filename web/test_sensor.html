@@ -1,0 +1,49 @@
+<!doctype html>
+<!--
+[อธิบาย] หน้าทดสอบ: จำลองการส่งค่าระยะของเซนเซอร์ไป sensor_update.php โดยไม่ต้องใช้บอร์ด ESP32
+ใช้ทดสอบว่าช่องเปลี่ยนสถานะ/สร้าง session ตามเกณฑ์ ต่ำกว่า 25 cm (รถเข้า) และ ตั้งแต่ 25 cm ขึ้นไป (รถออก) ถูกต้องหรือไม่
+-->
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>ESP32 API Test</title>
+</head>
+<body style="font-family:Arial;padding:30px">
+<h2>Smart Parking API Test (จำลอง ESP32 ส่งค่าเซนเซอร์)</h2>
+
+<p>
+  <label>Slot <input id="slot" type="number" value="1" min="1" style="width:60px"></label>
+  <label>Distance (cm) <input id="dist" type="number" value="20" step="0.1" style="width:80px"></label>
+  <button onclick="send()">ส่งข้อมูล</button>
+</p>
+<p>
+  <button onclick="quick(20)">🚗 จำลองรถเข้า (20 cm)</button>
+  <button onclick="quick(80)">⬅️ จำลองรถออก (80 cm)</button>
+</p>
+
+<p><b>เกณฑ์:</b> ต่ำกว่า 25 cm = รถเข้า (occupied) | ตั้งแต่ 25 cm ขึ้นไป = รถออก (available / reserved)</p>
+
+<pre id="out" style="background:#111;color:#0f0;padding:12px;min-height:80px"></pre>
+
+<script>
+function quick(d) { document.getElementById('dist').value = d; send(); }
+
+async function send() {
+  const n = parseInt(document.getElementById('slot').value, 10);
+  const d = parseFloat(document.getElementById('dist').value);
+  // รูปแบบเดียวกับที่ ESP32 ส่งให้ sensor_update.php
+  const body = { ['slot' + n]: { distance: d } };
+  try {
+    const r = await fetch('sensor_update.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    document.getElementById('out').textContent = JSON.stringify(await r.json(), null, 2);
+  } catch (e) {
+    document.getElementById('out').textContent = 'Error: ' + e;
+  }
+}
+</script>
+</body>
+</html>

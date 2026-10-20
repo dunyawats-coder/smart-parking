@@ -1,0 +1,33 @@
+services:
+  db:
+    image: mariadb:10.11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_USER: smartparking
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_DATABASE: smartparking
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./database/seed_demo.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro   # ลบบรรทัดนี้ถ้าไม่ต้องการข้อมูลตัวอย่าง
+  web:
+    build: .
+    restart: unless-stopped
+    depends_on: [db]
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    environment:
+      SP_DB_HOST: db
+      SP_DB_USER: smartparking
+      SP_DB_PASS: ${DB_PASSWORD}
+      SP_DB_NAME: smartparking
+      SP_PROMPTPAY_ID: ${PROMPTPAY_ID}
+      SP_ADMIN_KEY: ${ADMIN_KEY}
+    volumes:
+      - uploads:/var/www/html/smart_parking_integrated/uploads
+      - camera:/var/www/html/smart_parking_integrated/camera_images
+volumes:
+  db_data:
+  uploads:
+  camera:

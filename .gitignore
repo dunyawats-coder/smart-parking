@@ -1,0 +1,15 @@
+# ความลับ / ค่าเฉพาะเครื่อง
+web/config.php
+.env
+firmware/**/secrets.h
+# ข้อมูลที่ผู้ใช้อัปโหลด (สลิป, ภาพกล้อง) - ห้ามขึ้น GitHub
+web/uploads/*
+!web/uploads/.htaccess
+!web/uploads/.gitkeep
+web/camera_images/*
+!web/camera_images/.htaccess
+!web/camera_images/.gitkeep
+# dump ฐานข้อมูลจริง
+*.dump.sql
+backup*.sql
+db_data/

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<!--
+[อธิบาย] หน้าสาธารณะ (ไม่ต้องล็อกอิน) แสดงสถานะช่องจอดแบบสด: ดึง get_slots.php ทุก 2 วินาที
+สถานะมี 3 แบบ: available (เขียว) / reserved (จอง) / occupied (มีรถ) และมีลิงก์เข้าสู่ระบบ
+-->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Parking - สถานะที่จอดรถ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-white min-h-screen p-6 font-sans">
+
+    <div class="max-w-5xl mx-auto space-y-6">
+        <header class="flex flex-wrap gap-3 justify-between items-center border-b border-slate-700 pb-4">
+            <h1 class="text-2xl font-bold text-indigo-400 flex items-center gap-2">
+                <i class="fa-solid fa-square-p text-3xl"></i> ระบบที่จอดรถอัจฉริยะ (Smart Parking)
+            </h1>
+            <div class="flex items-center gap-3">
+                <span class="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full animate-pulse">
+                    ● Live Update (ทุก 2 วินาที)
+                </span>
+                <a href="login.php" class="text-sm bg-indigo-600 hover:bg-indigo-500 px-4 py-1.5 rounded-lg font-semibold">เข้าสู่ระบบ / จองช่องจอด</a>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                <p class="text-xs text-slate-400 font-semibold uppercase">ที่จอดทั้งหมด</p>
+                <p id="totalCount" class="text-3xl font-black text-white mt-1">-</p>
+            </div>
+            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                <p class="text-xs text-slate-400 font-semibold uppercase">ช่องว่าง</p>
+                <p id="availableCount" class="text-3xl font-black text-emerald-400 mt-1">-</p>
+            </div>
+            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                <p class="text-xs text-slate-400 font-semibold uppercase">จองแล้ว</p>
+                <p id="reservedCount" class="text-3xl font-black text-sky-400 mt-1">-</p>
+            </div>
+            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                <p class="text-xs text-slate-400 font-semibold uppercase">มีรถจอด</p>
+                <p id="occupiedCount" class="text-3xl font-black text-red-400 mt-1">-</p>
+            </div>
+        </div>
+
+        <h2 class="text-lg font-bold text-slate-300">สถานะช่องจอดรถแบบ Real-time</h2>
+        <div id="slotsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="text-center col-span-3 py-10 text-slate-500">กำลังโหลดข้อมูล...</div>
+        </div>
+    </div>
+
+    <script>
+        // สถานะมาตรฐานเดียวกับทั้งระบบ: available | reserved | occupied
+        const VIEW = {
+            available: { text: 'ว่าง',      border: 'border-emerald-500', badge: 'bg-emerald-500/20 text-emerald-400', icon: 'text-slate-600' },
+            reserved:  { text: 'จองแล้ว',   border: 'border-sky-500',     badge: 'bg-sky-500/20 text-sky-400',         icon: 'text-sky-400' },
+            occupied:  { text: 'มีรถจอดอยู่', border: 'border-red-500',     badge: 'bg-red-500/20 text-red-400',         icon: 'text-red-400' }
+        };
+
+        async function fetchParkingSlots() {
+            try {
+                const response = await fetch('get_slots.php?ts=' + Date.now());
+                const slots = await response.json();
+
+                const grid = document.getElementById('slotsGrid');
+                grid.innerHTML = '';
+                const count = { available: 0, reserved: 0, occupied: 0 };
+
+                slots.forEach(slot => {
+                    const status = VIEW[slot.status] ? slot.status : 'available';
+                    const v = VIEW[status];
+                    count[status]++;
+
+                    const dist = parseFloat(slot.distance_cm);
+                    const card = document.createElement('div');
+                    card.className = `p-6 rounded-2xl border-2 bg-slate-800/90 ${v.border}`;
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-xl text-white">ช่องจอด #${slot.slot_number}</h3>
+                            <span class="px-3 py-1 rounded-full text-xs font-bold ${v.badge}">${v.text}</span>
+                        </div>
+                        <div class="text-center py-6">
+                            <i class="fa-solid fa-car text-6xl ${v.icon}"></i>
+                        </div>
+                        <div class="bg-slate-900/60 p-3 rounded-lg text-xs space-y-1 text-slate-400">
+                            <p>ระยะทางเซนเซอร์ (HC-SR04): <span class="font-bold text-white">${isNaN(dist) ? '-' : dist.toFixed(1) + ' cm'}</span></p>
+                            <p>สถานะ: <span class="font-semibold text-slate-200">${status}</span></p>
+                        </div>`;
+                    grid.appendChild(card);
+                });
+
+                document.getElementById('totalCount').innerText = `${slots.length} ช่อง`;
+                document.getElementById('availableCount').innerText = `${count.available} ช่อง`;
+                document.getElementById('reservedCount').innerText = `${count.reserved} ช่อง`;
+                document.getElementById('occupiedCount').innerText = `${count.occupied} ช่อง`;
+            } catch (error) {
+                console.error("เกิดข้อผิดพลาดในการดึงข้อมูล:", error);
+            }
+        }
+
+        fetchParkingSlots();
+        setInterval(fetchParkingSlots, 2000);
+    </script>
+</body>
+</html>
